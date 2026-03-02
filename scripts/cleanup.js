@@ -1,6 +1,29 @@
 /* ── derot Page Cleanup Content Script ── */
 
+/* ── Allowlist — never clean up learning & productivity platforms ── */
+
+const CLEANUP_ALLOWED = [
+  "chatgpt.com", "chat.openai.com", "openai.com",
+  "claude.ai", "anthropic.com",
+  "gemini.google.com", "bard.google.com",
+  "copilot.microsoft.com", "perplexity.ai",
+  "github.com", "gitlab.com", "bitbucket.org",
+  "stackoverflow.com", "stackexchange.com",
+  "developer.mozilla.org", "docs.google.com",
+  "notion.so", "linear.app", "figma.com",
+  "coursera.org", "edx.org", "udemy.com", "khanacademy.org",
+  "leetcode.com", "hackerrank.com", "codewars.com",
+  "wikipedia.org", "scholar.google.com",
+  "w3schools.com", "freecodecamp.org",
+  "replit.com", "codepen.io", "codesandbox.io"
+];
+
 (async function () {
+  const host = location.hostname.replace(/^www\./, "");
+  for (const allowed of CLEANUP_ALLOWED) {
+    if (host === allowed || host.endsWith("." + allowed)) return;
+  }
+
   const { state } = await chrome.storage.local.get("state");
   if (!state?.focusActive || !state?.cleanupEnabled) return;
 
