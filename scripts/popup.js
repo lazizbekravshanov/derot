@@ -210,6 +210,7 @@ $("#focusCard").addEventListener("click", async (e) => {
     if (res.stats) stats = res.stats;
     renderFocus();
     renderBreak();
+    renderPomodoro();
     if (res.summary) showSessionSummary(res.summary);
   }
 });

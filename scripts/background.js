@@ -450,8 +450,12 @@ async function doToggleFocus(forceOverride = false) {
     s.breakActive = false;
     s.breakEndTime = null;
     s.sessionBlockedCount = 0;
+    s.pomodoroRunning = false;
+    s.pomodoroEndTime = null;
+    s.hardcoreLockUntil = null;
     chrome.alarms.clear("focusTick");
     chrome.alarms.clear("breakEnd");
+    chrome.alarms.clear("pomodoroEnd");
     await chrome.storage.local.set({ state: s });
     updateBadge(false);
     return { state: s, stats: st, summary };
