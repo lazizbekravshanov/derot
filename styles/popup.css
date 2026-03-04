@@ -257,7 +257,7 @@ body {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 10px;
   margin-bottom: 12px;
 }
@@ -286,6 +286,10 @@ body {
 
 .stat-blocked .stat-value { color: var(--danger); }
 .stat-focus .stat-value { color: var(--success); }
+.stat-score .stat-value { color: var(--accent-text); }
+.stat-score .stat-value.score-red { color: var(--danger); }
+.stat-score .stat-value.score-yellow { color: #ff9500; }
+.stat-score .stat-value.score-green { color: var(--success); }
 
 .stat-label {
   font-size: 11px;

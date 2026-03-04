@@ -44,6 +44,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderChallenges();
   renderQuote();
   renderFocusBtn();
+  renderScore();
 
   setInterval(updateClock, 1000);
 });
@@ -118,6 +119,20 @@ async function renderChallenges() {
 
 function renderQuote() {
   $("#ntQuote").textContent = `"${QUOTES[Math.floor(Math.random() * QUOTES.length)]}"`;
+}
+
+async function renderScore() {
+  try {
+    const res = await chrome.runtime.sendMessage({ type: "getProductivityScore" });
+    const el = $("#ntScore");
+    if (res.score === null || res.score === undefined) {
+      el.textContent = "--";
+      el.style.color = "";
+    } else {
+      el.textContent = res.score;
+      el.style.color = res.score < 40 ? "var(--danger, #ff3b30)" : res.score <= 70 ? "#ff9500" : "var(--success, #34c759)";
+    }
+  } catch { /* ignore */ }
 }
 
 function renderFocusBtn() {

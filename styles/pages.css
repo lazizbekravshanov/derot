@@ -761,6 +761,84 @@ body {
   background: var(--accent-soft);
 }
 
+/* ── Focus Schedule ── */
+
+.schedule-config {
+  margin-top: 12px;
+}
+
+.schedule-config.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.schedule-days {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.day-btn {
+  flex: 1;
+  padding: 8px 0;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.day-btn.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.day-btn:hover:not(.active) {
+  background: var(--accent-soft);
+}
+
+.schedule-times {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.time-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.time-label input[type="time"] {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.time-label input[type="time"]:focus {
+  border-color: var(--accent);
+}
+
+.time-separator {
+  color: var(--text-muted);
+  font-size: 16px;
+  margin-top: 18px;
+}
+
 /* ── Danger Zone ── */
 
 .danger-btn {

@@ -3,7 +3,7 @@
   "name": "derot — Focus & Deep Work",
   "version": "1.0.0",
   "description": "Block distractions, clean up pages, and stay focused. Built for students and deep workers.",
-  "permissions": ["storage", "tabs", "activeTab", "alarms", "webNavigation", "notifications"],
+  "permissions": ["storage", "tabs", "activeTab", "alarms", "webNavigation", "notifications", "idle"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "pages/popup.html",

@@ -99,8 +99,45 @@
       </div>
     </div>
 
+    <!-- Focus Schedule -->
+    <div class="section" style="animation: fadeUp 0.3s ease 0.26s both;">
+      <h2 class="section-title">Focus Schedule</h2>
+      <div class="cleanup-row">
+        <div class="cleanup-info">
+          <span class="cleanup-title">Auto-start focus</span>
+          <span class="cleanup-desc">Automatically start and stop focus at scheduled times</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="scheduleToggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="schedule-config" id="scheduleConfig">
+        <div class="schedule-days" id="scheduleDays">
+          <button class="day-btn" data-day="1">Mon</button>
+          <button class="day-btn" data-day="2">Tue</button>
+          <button class="day-btn" data-day="3">Wed</button>
+          <button class="day-btn" data-day="4">Thu</button>
+          <button class="day-btn" data-day="5">Fri</button>
+          <button class="day-btn" data-day="6">Sat</button>
+          <button class="day-btn" data-day="0">Sun</button>
+        </div>
+        <div class="schedule-times">
+          <label class="time-label">
+            <span>Start</span>
+            <input type="time" id="scheduleStart" value="09:00">
+          </label>
+          <span class="time-separator">—</span>
+          <label class="time-label">
+            <span>End</span>
+            <input type="time" id="scheduleEnd" value="17:00">
+          </label>
+        </div>
+      </div>
+    </div>
+
     <!-- Data -->
-    <div class="section" style="animation: fadeUp 0.3s ease 0.28s both;">
+    <div class="section" style="animation: fadeUp 0.3s ease 0.30s both;">
       <h2 class="section-title">Data</h2>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">This will permanently delete all focus statistics, streaks, and blocked site counts.</p>
       <button class="danger-btn" id="resetBtn">Reset all statistics</button>

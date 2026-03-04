@@ -1,0 +1,266 @@
+/* ── derot Analytics Styles ── */
+
+/* ── Score Ring ── */
+
+.score-section {
+  text-align: center;
+}
+
+.score-ring-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 160px;
+  height: 160px;
+  margin: 8px auto;
+}
+
+.score-ring-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.score-ring-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 8;
+}
+
+.score-ring-fg {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s ease, stroke 0.3s;
+}
+
+.score-ring-text {
+  position: absolute;
+  text-align: center;
+}
+
+.score-ring-value {
+  font-size: 36px;
+  font-weight: 700;
+  display: block;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.score-ring-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Time Breakdown Bar ── */
+
+.time-bar-wrap {
+  display: flex;
+  height: 28px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg);
+  margin-bottom: 12px;
+}
+
+.time-bar-seg {
+  min-width: 2px;
+  transition: width 0.6s ease;
+}
+
+.time-bar-seg.productive { background: var(--success); }
+.time-bar-seg.neutral { background: var(--text-muted); opacity: 0.3; }
+.time-bar-seg.distracting { background: var(--danger); }
+
+.time-legend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.time-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.time-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.time-legend-dot.productive { background: var(--success); }
+.time-legend-dot.neutral { background: var(--text-muted); opacity: 0.3; }
+.time-legend-dot.distracting { background: var(--danger); }
+
+/* ── Top Sites ── */
+
+.top-site-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 10px;
+}
+
+.top-site-row:last-child {
+  border-bottom: none;
+}
+
+.top-site-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.top-site-dot.productive { background: var(--success); }
+.top-site-dot.neutral { background: var(--text-muted); opacity: 0.4; }
+.top-site-dot.distracting { background: var(--danger); }
+
+.top-site-domain {
+  width: 140px;
+  font-size: 13px;
+  font-weight: 500;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-site-bar-wrap {
+  flex: 1;
+  height: 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.top-site-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.top-site-bar.productive { background: var(--success); opacity: 0.6; }
+.top-site-bar.neutral { background: var(--text-muted); opacity: 0.2; }
+.top-site-bar.distracting { background: var(--danger); opacity: 0.6; }
+
+.top-site-time {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  width: 40px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Heatmap ── */
+
+.section-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.heatmap-wrap {
+  overflow-x: auto;
+}
+
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: 40px repeat(24, 1fr);
+  gap: 2px;
+  min-width: 500px;
+}
+
+.heatmap-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  padding-right: 4px;
+}
+
+.heatmap-hour {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.heatmap-cell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--bg);
+  min-height: 14px;
+}
+
+.heatmap-cell.h1 { background: rgba(255, 59, 48, 0.15); }
+.heatmap-cell.h2 { background: rgba(255, 59, 48, 0.3); }
+.heatmap-cell.h3 { background: rgba(255, 59, 48, 0.5); }
+.heatmap-cell.h4 { background: rgba(255, 59, 48, 0.75); }
+
+[data-theme="dark"] .heatmap-cell.h1 { background: rgba(255, 69, 58, 0.2); }
+[data-theme="dark"] .heatmap-cell.h2 { background: rgba(255, 69, 58, 0.35); }
+[data-theme="dark"] .heatmap-cell.h3 { background: rgba(255, 69, 58, 0.55); }
+[data-theme="dark"] .heatmap-cell.h4 { background: rgba(255, 69, 58, 0.8); }
+
+/* ── Score Trend (reuses chart styles from pages.css) ── */
+
+.score-bar {
+  width: 100%;
+  max-width: 48px;
+  border-radius: 6px 6px 0 0;
+  min-height: 4px;
+  transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.score-bar.red { background: var(--danger); opacity: 0.6; }
+.score-bar.yellow { background: #ff9500; opacity: 0.7; }
+.score-bar.green { background: var(--success); opacity: 0.7; }
+.score-bar.today { opacity: 1; }
+
+/* ── Insights ── */
+
+.insights-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.insight-card {
+  padding: 14px;
+  background: var(--bg);
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.insight-card .insight-icon {
+  display: block;
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+.insight-card .insight-text {
+  font-weight: 500;
+}
+
+@media (max-width: 500px) {
+  .insights-grid {
+    grid-template-columns: 1fr;
+  }
+}

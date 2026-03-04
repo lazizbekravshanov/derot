@@ -14,7 +14,9 @@ const DEFAULT_STATE = {
   hardcoreMode: false,
   hardcoreLockUntil: null,
   focusGoal: 120,
-  newTabEnabled: true
+  newTabEnabled: true,
+  schedule: { enabled: false, days: [1, 2, 3, 4, 5], startTime: "09:00", endTime: "17:00" },
+  autoFocusActive: false
 };
 
 const DEFAULT_BLOCKLIST = [
@@ -42,7 +44,10 @@ const DEFAULT_STATS = {
   xp: 0,
   rank: "Apprentice",
   completedChallenges: 0,
-  dailyPomodoros: {}
+  dailyPomodoros: {},
+  siteTime: {},
+  hourlyBlocked: {},
+  siteCategories: {}
 };
 
 /* ── Helpers ── */
@@ -100,6 +105,163 @@ function isBlockedUrl(url) {
   return true;
 }
 
+/* ── Site Time Tracking ── */
+
+let activeTracking = { domain: null, startTime: null };
+
+function categorizeDomain(domain, siteCategories) {
+  if (!domain) return "neutral";
+  if (siteCategories && siteCategories[domain]) return siteCategories[domain];
+  for (const d of ALLOWED_DOMAINS) {
+    if (domain === d || domain.endsWith("." + d)) return "productive";
+  }
+  for (const s of DEFAULT_BLOCKLIST) {
+    if (domain === s.domain || domain.endsWith("." + s.domain)) return "distracting";
+  }
+  return "neutral";
+}
+
+function categorizeDomains(domains, siteCategories) {
+  const result = {};
+  for (const d of domains) {
+    result[d] = categorizeDomain(d, siteCategories);
+  }
+  return result;
+}
+
+async function flushTracking() {
+  if (!activeTracking.domain || !activeTracking.startTime) return;
+  const elapsed = Math.round((Date.now() - activeTracking.startTime) / 60000);
+  if (elapsed < 1) return;
+  const d = today();
+  const { stats } = await chrome.storage.local.get("stats");
+  const s = stats || DEFAULT_STATS;
+  if (!s.siteTime) s.siteTime = {};
+  if (!s.siteTime[d]) s.siteTime[d] = {};
+  s.siteTime[d][activeTracking.domain] = (s.siteTime[d][activeTracking.domain] || 0) + elapsed;
+  await chrome.storage.local.set({ stats: s });
+  activeTracking.startTime = Date.now();
+}
+
+function startTracking(domain) {
+  if (!domain) {
+    activeTracking = { domain: null, startTime: null };
+    return;
+  }
+  activeTracking = { domain, startTime: Date.now() };
+}
+
+async function switchTracking(newDomain) {
+  await flushTracking();
+  startTracking(newDomain);
+}
+
+async function pruneOldData() {
+  const { stats } = await chrome.storage.local.get("stats");
+  if (!stats) return;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const cutoffStr = cutoff.toISOString().split("T")[0];
+  let changed = false;
+  for (const key of ["siteTime", "hourlyBlocked", "dailyFocus", "dailyBlocked"]) {
+    if (!stats[key]) continue;
+    for (const dateKey of Object.keys(stats[key])) {
+      const dateOnly = dateKey.split("_")[0];
+      if (dateOnly < cutoffStr) {
+        delete stats[key][dateKey];
+        changed = true;
+      }
+    }
+  }
+  if (changed) await chrome.storage.local.set({ stats });
+}
+
+// Tab switch listener
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  try {
+    const tab = await chrome.tabs.get(activeInfo.tabId);
+    const domain = stripDomain(tab.url);
+    await switchTracking(domain);
+  } catch { /* tab may not exist */ }
+});
+
+// Window focus change
+chrome.windows.onFocusChanged.addListener(async (windowId) => {
+  if (windowId === chrome.windows.WINDOW_ID_NONE) {
+    await flushTracking();
+    activeTracking = { domain: null, startTime: null };
+    return;
+  }
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, windowId });
+    if (tab) {
+      const domain = stripDomain(tab.url);
+      await switchTracking(domain);
+    }
+  } catch { /* ignore */ }
+});
+
+// Idle state change
+chrome.idle.onStateChanged.addListener(async (newState) => {
+  if (newState === "idle" || newState === "locked") {
+    await flushTracking();
+    activeTracking = { domain: null, startTime: null };
+  } else if (newState === "active") {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab) {
+        const domain = stripDomain(tab.url);
+        startTracking(domain);
+      }
+    } catch { /* ignore */ }
+  }
+});
+
+chrome.idle.setDetectionInterval(60);
+
+/* ── Productivity Score ── */
+
+function computeProductivityScore(siteTimeDay, siteCategories) {
+  if (!siteTimeDay) return null;
+  let productive = 0, distracting = 0;
+  for (const [domain, mins] of Object.entries(siteTimeDay)) {
+    const cat = categorizeDomain(domain, siteCategories);
+    if (cat === "productive") productive += mins;
+    else if (cat === "distracting") distracting += mins;
+  }
+  const total = productive + distracting;
+  if (total === 0) return null;
+  return Math.round((productive / total) * 100);
+}
+
+/* ── Focus Scheduler ── */
+
+function isWithinSchedule(schedule) {
+  if (!schedule || !schedule.enabled) return false;
+  const now = new Date();
+  const day = now.getDay();
+  if (!schedule.days.includes(day)) return false;
+  const timeStr = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+  return timeStr >= schedule.startTime && timeStr < schedule.endTime;
+}
+
+async function checkSchedule() {
+  const { state } = await chrome.storage.local.get("state");
+  if (!state || !state.schedule || !state.schedule.enabled) return;
+
+  const inWindow = isWithinSchedule(state.schedule);
+
+  if (inWindow && !state.focusActive && !state.autoFocusActive) {
+    state.autoFocusActive = true;
+    await chrome.storage.local.set({ state });
+    await doToggleFocus();
+  } else if (!inWindow && state.focusActive && state.autoFocusActive) {
+    state.autoFocusActive = false;
+    await chrome.storage.local.set({ state });
+    await doToggleFocus();
+  }
+}
+
 /* ── Initialization ── */
 
 chrome.runtime.onInstalled.addListener(async () => {
@@ -132,12 +294,15 @@ async function checkAndBlock(tabId, url) {
 
   for (const site of blocklist) {
     if (site.enabled && domainMatches(hostname, site.domain)) {
-      // Increment blocked count
+      // Increment blocked count + hourly tracking
       const { stats } = await chrome.storage.local.get("stats");
       const s = stats || DEFAULT_STATS;
       const d = today();
       s.dailyBlocked[d] = (s.dailyBlocked[d] || 0) + 1;
       s.blockedSites[site.domain] = (s.blockedSites[site.domain] || 0) + 1;
+      if (!s.hourlyBlocked) s.hourlyBlocked = {};
+      const hourKey = d + "_" + String(new Date().getHours()).padStart(2, "0");
+      s.hourlyBlocked[hourKey] = (s.hourlyBlocked[hourKey] || 0) + 1;
       await chrome.storage.local.set({ stats: s });
 
       // Track session blocked count
@@ -154,9 +319,17 @@ async function checkAndBlock(tabId, url) {
   }
 }
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.url) {
     checkAndBlock(tabId, changeInfo.url);
+    // Track site time on URL change in active tab
+    try {
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (activeTab && activeTab.id === tabId) {
+        const domain = stripDomain(changeInfo.url);
+        await switchTracking(domain);
+      }
+    } catch { /* ignore */ }
   }
 });
 
@@ -169,6 +342,13 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
 /* ── Focus Time Tracking ── */
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === "trackingTick") {
+    await flushTracking();
+    pruneOldData();
+    checkSchedule();
+    return;
+  }
+
   if (alarm.name === "focusTick") {
     const { state, stats } = await chrome.storage.local.get(["state", "stats"]);
     if (!state || !state.focusActive) return;
@@ -429,6 +609,8 @@ async function doToggleFocus(forceOverride = false) {
   }
 
   s.focusActive = !s.focusActive;
+  // Manual toggle clears auto-focus flag
+  if (!forceOverride) s.autoFocusActive = false;
   if (s.focusActive) {
     s.focusStartTime = Date.now();
     s.sessionBlockedCount = 0;
@@ -604,6 +786,71 @@ async function handleMessage(msg) {
       return { stats: fresh };
     }
 
+    case "getSiteTime": {
+      const d = msg.date || today();
+      return { siteTime: st.siteTime?.[d] || {}, siteCategories: st.siteCategories || {} };
+    }
+
+    case "updateSiteCategory": {
+      if (!st.siteCategories) st.siteCategories = {};
+      st.siteCategories[msg.domain] = msg.category;
+      await chrome.storage.local.set({ stats: st });
+      return { ok: true };
+    }
+
+    case "categorizeDomains": {
+      return { categories: categorizeDomains(msg.domains || [], st.siteCategories || {}) };
+    }
+
+    case "getProductivityScore": {
+      const d = msg.date || today();
+      const score = computeProductivityScore(st.siteTime?.[d], st.siteCategories);
+      return { score };
+    }
+
+    case "getWeeklyScores": {
+      const days = getWeekDays();
+      const scores = days.map(d => ({
+        date: d,
+        score: computeProductivityScore(st.siteTime?.[d], st.siteCategories)
+      }));
+      return { scores };
+    }
+
+    case "getAnalyticsData": {
+      const d = msg.date || today();
+      const days = getWeekDays();
+      const siteTimeToday = st.siteTime?.[d] || {};
+      const categories = categorizeDomains(Object.keys(siteTimeToday), st.siteCategories || {});
+      const weeklyScores = days.map(dd => ({
+        date: dd,
+        score: computeProductivityScore(st.siteTime?.[dd], st.siteCategories)
+      }));
+      // Heatmap data: last 7 days x 24 hours
+      const heatmap = {};
+      for (const dd of days) {
+        for (let h = 0; h < 24; h++) {
+          const key = dd + "_" + String(h).padStart(2, "0");
+          heatmap[key] = st.hourlyBlocked?.[key] || 0;
+        }
+      }
+      return {
+        siteTime: siteTimeToday,
+        categories,
+        score: computeProductivityScore(siteTimeToday, st.siteCategories),
+        weeklyScores,
+        heatmap,
+        siteCategories: st.siteCategories || {},
+        weekDays: days
+      };
+    }
+
+    case "updateSchedule": {
+      s.schedule = { ...s.schedule, ...msg.schedule };
+      await chrome.storage.local.set({ state: s });
+      return { state: s };
+    }
+
     default:
       return { error: "Unknown message type" };
   }
@@ -615,9 +862,14 @@ async function handleMessage(msg) {
   const { state } = await chrome.storage.local.get("state");
   if (state && state.focusActive) {
     updateBadge(true);
-    // Re-register focus tick alarm
     chrome.alarms.create("focusTick", { periodInMinutes: 1 });
   }
-  // Ensure weekly challenges exist
+  // Always-on tracking tick for site time, pruning, and schedule
+  chrome.alarms.create("trackingTick", { periodInMinutes: 1 });
+  // Initialize tracking for current active tab
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab) startTracking(stripDomain(tab.url));
+  } catch { /* ignore */ }
   ensureWeeklyChallenges();
 })();

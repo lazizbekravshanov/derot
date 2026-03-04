@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics — derot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/pages.css">
+  <link rel="stylesheet" href="../styles/analytics.css">
+</head>
+<body>
+  <div class="page-container">
+    <!-- Header -->
+    <header class="page-header">
+      <div class="page-header-left">
+        <div class="page-logo">d</div>
+        <h1 class="page-title">Analytics</h1>
+        <span class="page-subtitle">Today</span>
+      </div>
+      <button id="themeToggle" class="theme-btn">🌙</button>
+    </header>
+
+    <!-- Productivity Score Ring -->
+    <div class="section score-section" style="animation: fadeUp 0.3s ease 0.08s both;">
+      <h2 class="section-title">Productivity Score</h2>
+      <div class="score-ring-wrap">
+        <svg class="score-ring-svg" viewBox="0 0 160 160">
+          <circle class="score-ring-bg" cx="80" cy="80" r="68"/>
+          <circle class="score-ring-fg" id="scoreRingFg" cx="80" cy="80" r="68"
+            stroke-dasharray="427.3" stroke-dashoffset="427.3"/>
+        </svg>
+        <div class="score-ring-text">
+          <span class="score-ring-value" id="scoreValue">--</span>
+          <span class="score-ring-label">out of 100</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Time Breakdown -->
+    <div class="section" style="animation: fadeUp 0.3s ease 0.12s both;">
+      <h2 class="section-title">Time Breakdown</h2>
+      <div class="time-bar-wrap" id="timeBar"></div>
+      <div class="time-legend" id="timeLegend"></div>
+    </div>
+
+    <!-- Top Sites -->
+    <div class="section" style="animation: fadeUp 0.3s ease 0.16s both;">
+      <h2 class="section-title">Top Sites</h2>
+      <div id="topSites"></div>
+    </div>
+
+    <!-- Distraction Heatmap -->
+    <div class="section" style="animation: fadeUp 0.3s ease 0.20s both;">
+      <h2 class="section-title">Distraction Heatmap</h2>
+      <p class="section-desc">Blocks per hour over the past week</p>
+      <div class="heatmap-wrap" id="heatmap"></div>
+    </div>
+
+    <!-- Score Trend -->
+    <div class="section chart-section" style="animation: fadeUp 0.3s ease 0.24s both;">
+      <h2 class="section-title">Score Trend</h2>
+      <div class="chart" id="scoreTrend"></div>
+    </div>
+
+    <!-- Insights -->
+    <div class="section" style="animation: fadeUp 0.3s ease 0.28s both;">
+      <h2 class="section-title">Insights</h2>
+      <div class="insights-grid" id="insights"></div>
+    </div>
+
+    <p class="page-footer">Understand your focus. Block what kills it.</p>
+  </div>
+
+  <script src="../scripts/analytics.js"></script>
+</body>
+</html>

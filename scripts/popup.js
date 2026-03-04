@@ -237,7 +237,7 @@ function updateBreakTimer() {
 
 /* ── Stats ── */
 
-function renderStats() {
+async function renderStats() {
   const d = new Date().toISOString().split("T")[0];
   const blocked = stats.dailyBlocked?.[d] || 0;
   const focus = stats.dailyFocus?.[d] || 0;
@@ -251,6 +251,19 @@ function renderStats() {
   } else {
     $("#focusTime").textContent = `${focus}m`;
   }
+
+  // Fetch and display productivity score
+  try {
+    const res = await msg({ type: "getProductivityScore" });
+    const el = $("#scoreValue");
+    if (res.score === null || res.score === undefined) {
+      el.textContent = "--";
+      el.className = "stat-value";
+    } else {
+      el.textContent = res.score;
+      el.className = "stat-value " + (res.score < 40 ? "score-red" : res.score <= 70 ? "score-yellow" : "score-green");
+    }
+  } catch { /* ignore */ }
 }
 
 /* ── Pomodoro ── */
@@ -361,6 +374,10 @@ function renderSites() {
 
 $("#statsBtn").addEventListener("click", () => {
   chrome.tabs.create({ url: chrome.runtime.getURL("pages/dashboard.html") });
+});
+
+$("#analyticsBtn").addEventListener("click", () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL("pages/analytics.html") });
 });
 
 $("#editSitesBtn").addEventListener("click", () => {
