@@ -206,30 +206,7 @@ function renderScoreTrend() {
 
 /* ── 6. Insights ── */
 
-async function renderInsights() {
-  const container = $("#insights");
-  const title = container.previousElementSibling;
-
-  // Show loading state
-  container.innerHTML = '<div class="insight-card"><span class="insight-icon">✨</span><span class="insight-text">Analyzing your focus patterns...</span></div>';
-
-  try {
-    const res = await chrome.runtime.sendMessage({ type: "getAiInsights" });
-    if (res && res.insights && !res.fallback) {
-      container.innerHTML = res.insights.map(ins =>
-        `<div class="insight-card"><span class="insight-icon">${ins.icon}</span><span class="insight-text">${ins.text}</span></div>`
-      ).join("");
-      if (title && !title.querySelector(".ai-badge")) {
-        title.insertAdjacentHTML("beforeend", ' <span class="ai-badge">AI</span>');
-      }
-      return;
-    }
-  } catch { /* fall through to rule-based */ }
-
-  renderFallbackInsights();
-}
-
-function renderFallbackInsights() {
+function renderInsights() {
   const { siteTime, categories, weeklyScores } = data;
   const container = $("#insights");
   const insights = [];

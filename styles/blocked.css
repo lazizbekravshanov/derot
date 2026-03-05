@@ -81,65 +81,10 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.breathing-wrap { animation: fadeUp 0.5s ease both; }
-.title { animation: fadeUp 0.5s ease 0.08s both; }
-.message { animation: fadeUp 0.5s ease 0.16s both; }
-.breathing-guide { animation: fadeUp 0.5s ease 0.24s both; }
-.actions { animation: fadeUp 0.5s ease 0.32s both; }
-.footnote { animation: fadeUp 0.5s ease 0.4s both; }
-
-/* ── Breathing Circle ── */
-
-@keyframes breathe {
-  0%, 100% { transform: scale(1); opacity: 0.9; }
-  50% { transform: scale(1.12); opacity: 1; }
-}
-
-@keyframes breatheMid {
-  0%, 100% { transform: scale(1); opacity: 0.5; }
-  50% { transform: scale(1.18); opacity: 0.7; }
-}
-
-@keyframes breatheOuter {
-  0%, 100% { transform: scale(1); opacity: 0.25; }
-  50% { transform: scale(1.25); opacity: 0.4; }
-}
-
-.breathing-wrap {
-  position: relative;
-  width: 96px;
-  height: 96px;
-  margin-bottom: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.breathing-circle {
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
-  background: var(--accent);
-  animation: breathe 8s ease-in-out infinite;
-}
-
-.breathing-ring {
-  position: absolute;
-  border-radius: 50%;
-  border: 2px solid var(--accent);
-}
-
-.ring-mid {
-  width: 120px;
-  height: 120px;
-  animation: breatheMid 8s ease-in-out infinite;
-}
-
-.ring-outer {
-  width: 144px;
-  height: 144px;
-  animation: breatheOuter 8s ease-in-out infinite;
-}
+.title { animation: fadeUp 0.5s ease both; }
+.message { animation: fadeUp 0.5s ease 0.08s both; }
+.actions { animation: fadeUp 0.5s ease 0.16s both; }
+.footnote { animation: fadeUp 0.5s ease 0.24s both; }
 
 /* ── Typography ── */
 
@@ -161,15 +106,6 @@ body {
 .message strong {
   color: var(--text);
   font-weight: 600;
-}
-
-.breathing-guide {
-  font-size: 14px;
-  color: var(--accent-text);
-  font-weight: 500;
-  margin-bottom: 32px;
-  font-variant-numeric: tabular-nums;
-  min-height: 20px;
 }
 
 /* ── Actions ── */

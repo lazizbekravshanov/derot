@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "derot — Focus & Deep Work",
   "version": "1.0.0",
-  "description": "Block distractions, clean up pages, and stay focused. Built for students and deep workers.",
-  "permissions": ["storage", "tabs", "activeTab", "alarms", "webNavigation", "notifications", "idle"],
+  "description": "Block distractions and stay focused with site blocking, pomodoro timer, and productivity analytics.",
+  "permissions": ["storage", "tabs", "alarms", "webNavigation", "notifications", "idle"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "pages/popup.html",
@@ -29,17 +29,6 @@
   "background": {
     "service_worker": "scripts/background.js"
   },
-  "chrome_url_overrides": {
-    "newtab": "pages/newtab.html"
-  },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["scripts/cleanup.js"],
-      "css": ["styles/cleanup.css"],
-      "run_at": "document_idle"
-    }
-  ],
   "web_accessible_resources": [
     {
       "resources": ["pages/*", "styles/*", "scripts/*", "icons/*"],

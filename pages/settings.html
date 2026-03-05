@@ -33,44 +33,6 @@
       <div id="siteList"></div>
     </div>
 
-    <!-- Page Cleanup -->
-    <div class="section" style="animation: fadeUp 0.3s ease 0.16s both;">
-      <h2 class="section-title">Page Cleanup</h2>
-      <div class="cleanup-row">
-        <div class="cleanup-info">
-          <span class="cleanup-title">Auto-clean pages</span>
-          <span class="cleanup-desc">Hide distracting elements during focus sessions</span>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="cleanupToggle">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-      <div class="cleanup-tags" id="cleanupTags">
-        <span class="cleanup-tag">Ads & banners</span>
-        <span class="cleanup-tag">Sidebar feeds</span>
-        <span class="cleanup-tag">Recommendations</span>
-        <span class="cleanup-tag">Cookie popups</span>
-        <span class="cleanup-tag">Notification badges</span>
-        <span class="cleanup-tag">Auto-play videos</span>
-      </div>
-    </div>
-
-    <!-- Hardcore Mode -->
-    <div class="section" style="animation: fadeUp 0.3s ease 0.20s both;">
-      <h2 class="section-title">Hardcore Mode</h2>
-      <div class="cleanup-row">
-        <div class="cleanup-info">
-          <span class="cleanup-title">Lock focus sessions</span>
-          <span class="cleanup-desc">Prevents stopping focus until pomodoro ends. Use with caution!</span>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="hardcoreToggle">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-    </div>
-
     <!-- Daily Focus Goal -->
     <div class="section" style="animation: fadeUp 0.3s ease 0.22s both;">
       <h2 class="section-title">Daily Focus Goal</h2>
@@ -81,58 +43,6 @@
         <button class="goal-preset" data-goal="120">2h</button>
         <button class="goal-preset" data-goal="180">3h</button>
         <button class="goal-preset" data-goal="240">4h</button>
-      </div>
-    </div>
-
-    <!-- New Tab Override -->
-    <div class="section" style="animation: fadeUp 0.3s ease 0.24s both;">
-      <h2 class="section-title">New Tab Page</h2>
-      <div class="cleanup-row">
-        <div class="cleanup-info">
-          <span class="cleanup-title">Focus new tab</span>
-          <span class="cleanup-desc">Replace Chrome's new tab with a derot focus page</span>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="newTabToggle">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-    </div>
-
-    <!-- Focus Schedule -->
-    <div class="section" style="animation: fadeUp 0.3s ease 0.26s both;">
-      <h2 class="section-title">Focus Schedule</h2>
-      <div class="cleanup-row">
-        <div class="cleanup-info">
-          <span class="cleanup-title">Auto-start focus</span>
-          <span class="cleanup-desc">Automatically start and stop focus at scheduled times</span>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="scheduleToggle">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-      <div class="schedule-config" id="scheduleConfig">
-        <div class="schedule-days" id="scheduleDays">
-          <button class="day-btn" data-day="1">Mon</button>
-          <button class="day-btn" data-day="2">Tue</button>
-          <button class="day-btn" data-day="3">Wed</button>
-          <button class="day-btn" data-day="4">Thu</button>
-          <button class="day-btn" data-day="5">Fri</button>
-          <button class="day-btn" data-day="6">Sat</button>
-          <button class="day-btn" data-day="0">Sun</button>
-        </div>
-        <div class="schedule-times">
-          <label class="time-label">
-            <span>Start</span>
-            <input type="time" id="scheduleStart" value="09:00">
-          </label>
-          <span class="time-separator">—</span>
-          <label class="time-label">
-            <span>End</span>
-            <input type="time" id="scheduleEnd" value="17:00">
-          </label>
-        </div>
       </div>
     </div>
 

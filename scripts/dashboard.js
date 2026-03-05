@@ -16,9 +16,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderStatsRow();
   renderChart();
   renderBlockedSites();
-  renderMilestones();
-  renderGoalRate();
-  renderChallenges();
   renderCalendar();
 });
 
@@ -246,86 +243,6 @@ function renderCalendar() {
     el.textContent = d;
     container.appendChild(el);
   }
-}
-
-/* ── Milestones ── */
-
-const MILESTONE_LABELS = {
-  3: "3-Day Spark", 7: "Week Warrior", 14: "Fortnight Focus",
-  30: "Monthly Master", 60: "60-Day Legend", 100: "Centurion"
-};
-const ALL_MILESTONES = [3, 7, 14, 30, 60, 100];
-
-function renderMilestones() {
-  const container = $("#milestoneBadges");
-  container.innerHTML = "";
-  const earned = stats.milestones || [];
-  for (const m of ALL_MILESTONES) {
-    const el = document.createElement("div");
-    el.className = "milestone-badge" + (earned.includes(m) ? " earned" : "");
-    el.innerHTML = `<span class="mb-icon">${earned.includes(m) ? "🏆" : "🔒"}</span><span class="mb-label">${MILESTONE_LABELS[m]}</span>`;
-    container.appendChild(el);
-  }
-}
-
-/* ── Goal Completion Rate ── */
-
-function renderGoalRate() {
-  const days = getLast7Days();
-  const goal = state.focusGoal || 120;
-  let met = 0;
-  for (const d of days) {
-    if ((stats.dailyFocus?.[d] || 0) >= goal) met++;
-  }
-  const pct = Math.round((met / 7) * 100);
-  $("#goalRate").textContent = `${pct}%`;
-}
-
-/* ── Weekly Challenges ── */
-
-async function renderChallenges() {
-  const { challenges } = await chrome.storage.local.get("challenges");
-  const container = $("#challengeCards");
-  container.innerHTML = "";
-
-  if (!challenges || !challenges.active || challenges.active.length === 0) {
-    container.innerHTML = '<p style="font-size:13px;color:var(--text-muted);">No active challenges yet. Check back Monday!</p>';
-  } else {
-    for (const ch of challenges.active) {
-      const card = document.createElement("div");
-      card.className = "challenge-card" + (ch.completed ? " completed" : "");
-      const pct = Math.min(100, Math.round((ch.progress / ch.target) * 100));
-      card.innerHTML = `
-        <div class="ch-header">
-          <span class="ch-name">${ch.completed ? "✅" : "🎯"} ${ch.name}</span>
-          <span class="ch-xp">+${ch.xp} XP</span>
-        </div>
-        <span class="ch-desc">${ch.description}</span>
-        <div class="ch-bar-wrap"><div class="ch-bar" style="width:${pct}%"></div></div>
-        <span class="ch-progress">${ch.progress}/${ch.target}</span>
-      `;
-      container.appendChild(card);
-    }
-  }
-
-  // XP + Rank
-  const xp = stats.xp || 0;
-  const rank = stats.rank || "Apprentice";
-  const RANKS = [
-    { name: "Apprentice", xp: 0 }, { name: "Scholar", xp: 100 },
-    { name: "Adept", xp: 300 }, { name: "Master", xp: 600 },
-    { name: "Sage", xp: 1000 }, { name: "Legend", xp: 2000 }
-  ];
-  let currentIdx = 0;
-  for (let i = RANKS.length - 1; i >= 0; i--) {
-    if (xp >= RANKS[i].xp) { currentIdx = i; break; }
-  }
-  const nextRank = RANKS[currentIdx + 1];
-  const pctXp = nextRank ? Math.round(((xp - RANKS[currentIdx].xp) / (nextRank.xp - RANKS[currentIdx].xp)) * 100) : 100;
-
-  $("#xpBar").style.width = pctXp + "%";
-  $("#xpLabel").textContent = `${xp} XP`;
-  $("#rankDisplay").textContent = rank;
 }
 
 /* ── Theme Sync ── */

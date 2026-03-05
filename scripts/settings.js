@@ -14,11 +14,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   applyTheme(state.theme);
   renderSiteList();
-  renderCleanup();
-  renderHardcore();
   renderGoalPresets();
-  renderNewTab();
-  renderSchedule();
 });
 
 /* ── Theme ── */
@@ -128,46 +124,6 @@ $("#siteInput").addEventListener("keydown", (e) => {
   if (e.key === "Enter") addSite();
 });
 
-/* ── Page Cleanup ── */
-
-function renderCleanup() {
-  $("#cleanupToggle").checked = state.cleanupEnabled;
-  updateCleanupTags();
-}
-
-$("#cleanupToggle").addEventListener("change", async () => {
-  state.cleanupEnabled = $("#cleanupToggle").checked;
-  await chrome.runtime.sendMessage({
-    type: "updateSettings",
-    settings: { cleanupEnabled: state.cleanupEnabled }
-  });
-  updateCleanupTags();
-});
-
-function updateCleanupTags() {
-  const tags = $("#cleanupTags");
-  tags.classList.toggle("disabled", !state.cleanupEnabled);
-}
-
-/* ── Hardcore Mode ── */
-
-function renderHardcore() {
-  $("#hardcoreToggle").checked = state.hardcoreMode || false;
-}
-
-$("#hardcoreToggle").addEventListener("change", async () => {
-  const enabling = $("#hardcoreToggle").checked;
-  if (enabling && !confirm("Hardcore mode will lock your focus session until the pomodoro ends. You can still triple-click to override. Enable?")) {
-    $("#hardcoreToggle").checked = false;
-    return;
-  }
-  state.hardcoreMode = enabling;
-  await chrome.runtime.sendMessage({
-    type: "updateSettings",
-    settings: { hardcoreMode: enabling }
-  });
-});
-
 /* ── Daily Focus Goal ── */
 
 function renderGoalPresets() {
@@ -187,72 +143,6 @@ document.querySelectorAll(".goal-preset").forEach((btn) => {
     });
     renderGoalPresets();
   });
-});
-
-/* ── New Tab Toggle ── */
-
-function renderNewTab() {
-  $("#newTabToggle").checked = state.newTabEnabled !== false;
-}
-
-$("#newTabToggle").addEventListener("change", async () => {
-  state.newTabEnabled = $("#newTabToggle").checked;
-  await chrome.runtime.sendMessage({
-    type: "updateSettings",
-    settings: { newTabEnabled: state.newTabEnabled }
-  });
-});
-
-/* ── Focus Schedule ── */
-
-function renderSchedule() {
-  const schedule = state.schedule || { enabled: false, days: [1, 2, 3, 4, 5], startTime: "09:00", endTime: "17:00" };
-  $("#scheduleToggle").checked = schedule.enabled;
-  $("#scheduleStart").value = schedule.startTime || "09:00";
-  $("#scheduleEnd").value = schedule.endTime || "17:00";
-
-  const config = $("#scheduleConfig");
-  config.classList.toggle("disabled", !schedule.enabled);
-
-  document.querySelectorAll(".day-btn").forEach(btn => {
-    const day = Number(btn.dataset.day);
-    btn.classList.toggle("active", (schedule.days || []).includes(day));
-  });
-}
-
-$("#scheduleToggle").addEventListener("change", async () => {
-  const schedule = state.schedule || { enabled: false, days: [1, 2, 3, 4, 5], startTime: "09:00", endTime: "17:00" };
-  schedule.enabled = $("#scheduleToggle").checked;
-  state.schedule = schedule;
-  await chrome.runtime.sendMessage({ type: "updateSchedule", schedule });
-  renderSchedule();
-});
-
-document.querySelectorAll(".day-btn").forEach(btn => {
-  btn.addEventListener("click", async () => {
-    const schedule = state.schedule || { enabled: false, days: [1, 2, 3, 4, 5], startTime: "09:00", endTime: "17:00" };
-    const day = Number(btn.dataset.day);
-    const idx = schedule.days.indexOf(day);
-    if (idx >= 0) schedule.days.splice(idx, 1);
-    else schedule.days.push(day);
-    state.schedule = schedule;
-    await chrome.runtime.sendMessage({ type: "updateSchedule", schedule });
-    renderSchedule();
-  });
-});
-
-$("#scheduleStart").addEventListener("change", async () => {
-  const schedule = state.schedule || { enabled: false, days: [1, 2, 3, 4, 5], startTime: "09:00", endTime: "17:00" };
-  schedule.startTime = $("#scheduleStart").value;
-  state.schedule = schedule;
-  await chrome.runtime.sendMessage({ type: "updateSchedule", schedule });
-});
-
-$("#scheduleEnd").addEventListener("change", async () => {
-  const schedule = state.schedule || { enabled: false, days: [1, 2, 3, 4, 5], startTime: "09:00", endTime: "17:00" };
-  schedule.endTime = $("#scheduleEnd").value;
-  state.schedule = schedule;
-  await chrome.runtime.sendMessage({ type: "updateSchedule", schedule });
 });
 
 /* ── Reset Stats ── */

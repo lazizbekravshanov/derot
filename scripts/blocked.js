@@ -15,12 +15,6 @@ const QUOTES = [
   "Small disciplines repeated with consistency every day lead to great achievements."
 ];
 
-const BREATHING = [
-  { label: "Breathe in", duration: 4 },
-  { label: "Hold", duration: 7 },
-  { label: "Breathe out", duration: 8 }
-];
-
 let breakInterval = null;
 
 /* ── Init ── */
@@ -51,14 +45,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Random quote
   $("#footnote").textContent = QUOTES[Math.floor(Math.random() * QUOTES.length)];
 
-  // Start breathing guide
-  startBreathing();
-
-  // Hide break button in hardcore mode
-  if (state?.hardcoreMode && state?.hardcoreLockUntil && Date.now() < state.hardcoreLockUntil) {
-    $("#breakBtn").style.display = "none";
-  }
-
   // Check if already on break
   if (state?.breakActive && state?.breakEndTime) {
     showBreakOverlay(state.breakEndTime);
@@ -72,26 +58,6 @@ function formatDuration(mins) {
     return m > 0 ? `${h}h ${m}m` : `${h}h`;
   }
   return `${mins} minutes`;
-}
-
-/* ── Breathing Guide (4-7-8) ── */
-
-function startBreathing() {
-  let phase = 0;
-  let counter = BREATHING[0].duration;
-
-  function tick() {
-    const step = BREATHING[phase];
-    $("#breathingGuide").textContent = `${step.label}... ${counter}`;
-    counter--;
-    if (counter < 0) {
-      phase = (phase + 1) % BREATHING.length;
-      counter = BREATHING[phase].duration;
-    }
-  }
-
-  tick();
-  setInterval(tick, 1000);
 }
 
 /* ── Actions ── */

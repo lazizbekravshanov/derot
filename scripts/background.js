@@ -10,13 +10,7 @@ const DEFAULT_STATE = {
   pomodoroTime: 1500,
   pomodoroRunning: false,
   pomodoroEndTime: null,
-  sessionBlockedCount: 0,
-  hardcoreMode: false,
-  hardcoreLockUntil: null,
-  focusGoal: 120,
-  newTabEnabled: true,
-  schedule: { enabled: false, days: [1, 2, 3, 4, 5], startTime: "09:00", endTime: "17:00" },
-  autoFocusActive: false
+  focusGoal: 120
 };
 
 const DEFAULT_BLOCKLIST = [
@@ -38,12 +32,6 @@ const DEFAULT_STATS = {
   blockedSites: {},
   currentStreak: 0,
   lastFocusDate: null,
-  milestones: [],
-  newMilestone: null,
-  goalsCompleted: {},
-  xp: 0,
-  rank: "Apprentice",
-  completedChallenges: 0,
   dailyPomodoros: {},
   siteTime: {},
   hourlyBlocked: {},
@@ -245,43 +233,13 @@ function computeProductivityScore(siteTimeDay, siteCategories) {
   return Math.round((productive / total) * 100);
 }
 
-/* ── Focus Scheduler ── */
-
-function isWithinSchedule(schedule) {
-  if (!schedule || !schedule.enabled) return false;
-  const now = new Date();
-  const day = now.getDay();
-  if (!schedule.days.includes(day)) return false;
-  const timeStr = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
-  return timeStr >= schedule.startTime && timeStr < schedule.endTime;
-}
-
-async function checkSchedule() {
-  const { state } = await chrome.storage.local.get("state");
-  if (!state || !state.schedule || !state.schedule.enabled) return;
-
-  const inWindow = isWithinSchedule(state.schedule);
-
-  if (inWindow && !state.focusActive && !state.autoFocusActive) {
-    state.autoFocusActive = true;
-    await chrome.storage.local.set({ state });
-    await doToggleFocus();
-  } else if (!inWindow && state.focusActive && state.autoFocusActive) {
-    state.autoFocusActive = false;
-    await chrome.storage.local.set({ state });
-    await doToggleFocus();
-  }
-}
-
 /* ── Initialization ── */
 
 chrome.runtime.onInstalled.addListener(async () => {
-  const { state, stats, challenges } = await chrome.storage.local.get(["state", "stats", "challenges"]);
-  // Merge defaults so existing users get new fields
+  const { state, stats } = await chrome.storage.local.get(["state", "stats"]);
   await chrome.storage.local.set({
     state: { ...DEFAULT_STATE, ...state },
-    stats: { ...DEFAULT_STATS, ...stats },
-    challenges: challenges || { weekOf: null, active: [], history: [] }
+    stats: { ...DEFAULT_STATS, ...stats }
   });
   if (!state) {
     await chrome.storage.local.set({ blocklist: DEFAULT_BLOCKLIST });
@@ -315,10 +273,6 @@ async function checkAndBlock(tabId, url) {
       const hourKey = d + "_" + String(new Date().getHours()).padStart(2, "0");
       s.hourlyBlocked[hourKey] = (s.hourlyBlocked[hourKey] || 0) + 1;
       await chrome.storage.local.set({ stats: s });
-
-      // Track session blocked count
-      state.sessionBlockedCount = (state.sessionBlockedCount || 0) + 1;
-      await chrome.storage.local.set({ state });
 
       // Redirect to blocked page
       const blockedUrl = chrome.runtime.getURL(
@@ -356,7 +310,6 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === "trackingTick") {
     await flushTracking();
     pruneOldData();
-    checkSchedule();
     return;
   }
 
@@ -366,19 +319,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     const s = stats || DEFAULT_STATS;
     const d = today();
     s.dailyFocus[d] = (s.dailyFocus[d] || 0) + 1;
-
-    // Check daily goal completion
-    const goal = state.focusGoal || 120;
-    if (!s.goalsCompleted) s.goalsCompleted = {};
-    if (s.dailyFocus[d] >= goal && !s.goalsCompleted[d]) {
-      s.goalsCompleted[d] = true;
-    }
-
     await chrome.storage.local.set({ stats: s });
     updateBadge(true);
-
-    // Evaluate challenges
-    evaluateChallenges(state, s);
   }
 
   if (alarm.name === "breakEnd") {
@@ -397,8 +339,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     if (!state) return;
     state.pomodoroRunning = false;
     state.pomodoroEndTime = null;
-    state.hardcoreLockUntil = null;
-    // Track daily pomodoros for challenges
+    // Track daily pomodoros
     const { stats } = await chrome.storage.local.get("stats");
     if (stats) {
       const d = today();
@@ -456,17 +397,9 @@ async function updateBadge(focusActive) {
 
 /* ── Streak Logic ── */
 
-const MILESTONES = [3, 7, 14, 30, 60, 100];
-const MILESTONE_LABELS = {
-  3: "3-Day Spark", 7: "Week Warrior", 14: "Fortnight Focus",
-  30: "Monthly Master", 60: "60-Day Legend", 100: "Centurion"
-};
-
 function updateStreak(stats) {
   const d = today();
   if (stats.lastFocusDate === d) return; // Already counted today
-
-  if (!stats.milestones) stats.milestones = [];
 
   const last = stats.lastFocusDate;
   if (last) {
@@ -484,34 +417,9 @@ function updateStreak(stats) {
     stats.currentStreak = 1;
   }
   stats.lastFocusDate = d;
-
-  // Check milestones
-  for (const m of MILESTONES) {
-    if (stats.currentStreak >= m && !stats.milestones.includes(m)) {
-      stats.milestones.push(m);
-      stats.newMilestone = { days: m, label: MILESTONE_LABELS[m] };
-    }
-  }
 }
 
-/* ── Challenges System ── */
-
-const CHALLENGE_POOL = [
-  { id: "early_bird", name: "Early Bird", description: "Start 3 focus sessions before 9 AM", target: 3, xp: 50 },
-  { id: "fortress", name: "Fortress", description: "Block 50 distractions this week", target: 50, xp: 40 },
-  { id: "marathon", name: "Marathon", description: "Accumulate 10 hours of focus this week", target: 600, xp: 80 },
-  { id: "triple_threat", name: "Triple Threat", description: "Complete 3 pomodoros in one day", target: 3, xp: 30 },
-  { id: "consistent", name: "Consistency King", description: "Focus every day this week (7 days)", target: 7, xp: 60 },
-  { id: "deep_dive", name: "Deep Dive", description: "Have a single focus session lasting 2+ hours", target: 1, xp: 50 },
-  { id: "power_hour", name: "Power Hour", description: "Focus for 60+ minutes on 5 different days", target: 5, xp: 60 },
-  { id: "goal_crusher", name: "Goal Crusher", description: "Hit your daily focus goal 5 times this week", target: 5, xp: 70 }
-];
-
-const RANKS = [
-  { name: "Apprentice", xp: 0 }, { name: "Scholar", xp: 100 },
-  { name: "Adept", xp: 300 }, { name: "Master", xp: 600 },
-  { name: "Sage", xp: 1000 }, { name: "Legend", xp: 2000 }
-];
+/* ── Week Days Helper (used by getAnalyticsData) ── */
 
 function getWeekDays() {
   const now = new Date();
@@ -527,145 +435,35 @@ function getWeekDays() {
   return days;
 }
 
-function weeklySum(obj) {
-  if (!obj) return 0;
-  return getWeekDays().reduce((s, d) => s + (obj[d] || 0), 0);
-}
-
-function getMonday() {
-  const now = new Date();
-  const dow = now.getDay();
-  const mon = new Date(now);
-  mon.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
-  return mon.toISOString().split("T")[0];
-}
-
-function evaluateChallengeProgress(ch, stats, state) {
-  switch (ch.id) {
-    case "fortress": return weeklySum(stats.dailyBlocked);
-    case "marathon": return weeklySum(stats.dailyFocus);
-    case "triple_threat": return (stats.dailyPomodoros || {})[today()] || 0;
-    case "consistent": return getWeekDays().filter(d => (stats.dailyFocus?.[d] || 0) > 0).length;
-    case "deep_dive":
-      if (state.focusActive && state.focusStartTime) {
-        return (Date.now() - state.focusStartTime) / 60000 >= 120 ? 1 : 0;
-      }
-      return 0;
-    case "power_hour": return getWeekDays().filter(d => (stats.dailyFocus?.[d] || 0) >= 60).length;
-    case "goal_crusher": return getWeekDays().filter(d => (stats.goalsCompleted || {})[d]).length;
-    case "early_bird": return ch.progress; // tracked separately on focus start
-    default: return ch.progress || 0;
-  }
-}
-
-async function evaluateChallenges(state, stats) {
-  const { challenges } = await chrome.storage.local.get("challenges");
-  if (!challenges || !challenges.active) return;
-
-  let xpGained = 0;
-  for (const ch of challenges.active) {
-    if (ch.completed) continue;
-    ch.progress = evaluateChallengeProgress(ch, stats, state);
-    if (ch.progress >= ch.target) {
-      ch.completed = true;
-      xpGained += ch.xp;
-      if (!stats.completedChallenges) stats.completedChallenges = 0;
-      stats.completedChallenges++;
-    }
-  }
-
-  if (xpGained > 0) {
-    stats.xp = (stats.xp || 0) + xpGained;
-    // Update rank
-    let rank = "Apprentice";
-    for (const r of RANKS) { if (stats.xp >= r.xp) rank = r.name; }
-    stats.rank = rank;
-    await chrome.storage.local.set({ stats });
-  }
-
-  await chrome.storage.local.set({ challenges });
-}
-
-async function ensureWeeklyChallenges() {
-  const { challenges } = await chrome.storage.local.get("challenges");
-  const monday = getMonday();
-  if (!challenges || challenges.weekOf !== monday) {
-    const shuffled = [...CHALLENGE_POOL].sort(() => Math.random() - 0.5);
-    const active = shuffled.slice(0, 4).map(ch => ({
-      id: ch.id, name: ch.name, description: ch.description,
-      target: ch.target, xp: ch.xp, progress: 0, completed: false
-    }));
-    const history = challenges?.history || [];
-    if (challenges?.active) {
-      history.push({ weekOf: challenges.weekOf, challenges: challenges.active });
-    }
-    await chrome.storage.local.set({
-      challenges: { weekOf: monday, active, history: history.slice(-8) }
-    });
-  }
-}
-
 /* ── Core Toggle ── */
 
-async function doToggleFocus(forceOverride = false) {
+async function doToggleFocus() {
   const { state, stats } = await chrome.storage.local.get(["state", "stats"]);
   const s = state || DEFAULT_STATE;
   const st = stats || DEFAULT_STATS;
 
-  // Hardcore mode: refuse toggle-off if locked
-  if (s.focusActive && s.hardcoreMode && s.hardcoreLockUntil && !forceOverride) {
-    if (Date.now() < s.hardcoreLockUntil) {
-      return { state: s, stats: st, locked: true };
-    }
-  }
-
   s.focusActive = !s.focusActive;
-  // Manual toggle clears auto-focus flag
-  if (!forceOverride) s.autoFocusActive = false;
   if (s.focusActive) {
     s.focusStartTime = Date.now();
-    s.sessionBlockedCount = 0;
-    s.hardcoreLockUntil = null;
     chrome.alarms.create("focusTick", { periodInMinutes: 1 });
     updateStreak(st);
     await chrome.storage.local.set({ stats: st });
-    // Track early bird challenge
-    if (new Date().getHours() < 9) {
-      const { challenges } = await chrome.storage.local.get("challenges");
-      if (challenges?.active) {
-        const eb = challenges.active.find(c => c.id === "early_bird" && !c.completed);
-        if (eb) { eb.progress++; await chrome.storage.local.set({ challenges }); }
-      }
-    }
   } else {
-    const summary = buildSessionSummary(s, st);
     s.focusStartTime = null;
     s.breakActive = false;
     s.breakEndTime = null;
-    s.sessionBlockedCount = 0;
     s.pomodoroRunning = false;
     s.pomodoroEndTime = null;
-    s.hardcoreLockUntil = null;
     chrome.alarms.clear("focusTick");
     chrome.alarms.clear("breakEnd");
     chrome.alarms.clear("pomodoroEnd");
     await chrome.storage.local.set({ state: s });
     updateBadge(false);
-    return { state: s, stats: st, summary };
+    return { state: s, stats: st };
   }
   await chrome.storage.local.set({ state: s });
   updateBadge(true);
   return { state: s, stats: st };
-}
-
-function buildSessionSummary(state, stats) {
-  if (!state.focusStartTime) return null;
-  const duration = Math.floor((Date.now() - state.focusStartTime) / 60000);
-  return {
-    duration,
-    blockedCount: state.sessionBlockedCount || 0,
-    streak: stats.currentStreak || 0
-  };
 }
 
 /* ── Keyboard Shortcut ── */
@@ -673,16 +471,6 @@ function buildSessionSummary(state, stats) {
 chrome.commands.onCommand.addListener(async (command) => {
   if (command === "toggle-focus") {
     const result = await doToggleFocus();
-    if (result.locked) {
-      chrome.notifications.create("focusToggle", {
-        type: "basic",
-        iconUrl: chrome.runtime.getURL("icons/icon-128.png"),
-        title: "Hardcore Mode Active",
-        message: "Focus is locked until the pomodoro ends.",
-        priority: 1
-      });
-      return;
-    }
     const active = result.state.focusActive;
     chrome.notifications.create("focusToggle", {
       type: "basic",
@@ -723,10 +511,6 @@ async function handleMessage(msg) {
     }
 
     case "startBreak": {
-      // Hardcore mode: refuse break if locked
-      if (s.hardcoreMode && s.hardcoreLockUntil && Date.now() < s.hardcoreLockUntil) {
-        return { state: s, locked: true };
-      }
       s.breakActive = true;
       s.breakEndTime = Date.now() + 300000; // 5 minutes
       chrome.alarms.create("breakEnd", { delayInMinutes: 5 });
@@ -760,10 +544,6 @@ async function handleMessage(msg) {
     case "startPomodoro": {
       s.pomodoroRunning = true;
       s.pomodoroEndTime = Date.now() + s.pomodoroTime * 1000;
-      // Set hardcore lock until pomodoro ends
-      if (s.hardcoreMode) {
-        s.hardcoreLockUntil = s.pomodoroEndTime;
-      }
       chrome.alarms.create("pomodoroEnd", {
         delayInMinutes: s.pomodoroTime / 60
       });
@@ -772,26 +552,11 @@ async function handleMessage(msg) {
     }
 
     case "stopPomodoro": {
-      // Hardcore mode: refuse stopping pomodoro while locked
-      if (s.hardcoreMode && s.hardcoreLockUntil && Date.now() < s.hardcoreLockUntil) {
-        return { state: s, locked: true };
-      }
       s.pomodoroRunning = false;
       s.pomodoroEndTime = null;
-      s.hardcoreLockUntil = null;
       chrome.alarms.clear("pomodoroEnd");
       await chrome.storage.local.set({ state: s });
       return { state: s };
-    }
-
-    case "hardcoreOverride": {
-      return await doToggleFocus(true);
-    }
-
-    case "clearMilestone": {
-      st.newMilestone = null;
-      await chrome.storage.local.set({ stats: st });
-      return { ok: true };
     }
 
     case "resetStats": {
@@ -859,138 +624,8 @@ async function handleMessage(msg) {
       };
     }
 
-    case "updateSchedule": {
-      s.schedule = { ...s.schedule, ...msg.schedule };
-      await chrome.storage.local.set({ state: s });
-      return { state: s };
-    }
-
-    case "getAiInsight": {
-      return await generateAiInsight(st, s);
-    }
-
-    case "getAiInsights": {
-      return await generateAiInsights(st, s);
-    }
-
     default:
       return { error: "Unknown message type" };
-  }
-}
-
-/* ── AI Insights (Gemini Nano) ── */
-
-let aiInsightCache = { date: null, hour: null, insight: null, insights: null };
-
-function buildAiPromptData(stats, state) {
-  const d = today();
-  const siteTimeToday = stats.siteTime?.[d] || {};
-  const score = computeProductivityScore(siteTimeToday, stats.siteCategories);
-  const focusMins = stats.dailyFocus?.[d] || 0;
-  const goal = state.focusGoal || 120;
-  const streak = stats.currentStreak || 0;
-
-  // Top 8 sites with categories
-  const topSites = Object.entries(siteTimeToday)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([domain, mins]) => {
-      const cat = categorizeDomain(domain, stats.siteCategories);
-      return `${domain}:${mins}m(${cat})`;
-    })
-    .join(", ");
-
-  // Weekly scores
-  const days = getWeekDays();
-  const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  const weeklyScores = days.map((dd, i) => {
-    const s = computeProductivityScore(stats.siteTime?.[dd], stats.siteCategories);
-    return `${dayNames[i]}=${s ?? "--"}`;
-  }).join(", ");
-
-  // Peak distraction hour
-  let peakHour = -1, peakVal = 0;
-  for (let h = 0; h < 24; h++) {
-    const key = d + "_" + String(h).padStart(2, "0");
-    const val = stats.hourlyBlocked?.[key] || 0;
-    if (val > peakVal) { peakVal = val; peakHour = h; }
-  }
-  const peakStr = peakHour >= 0 ? `Peak distraction hour: ${peakHour}:00 (${peakVal} blocks).` : "";
-
-  return `Score: ${score ?? "--"}/100. Streak: ${streak} days. Focus today: ${focusMins}m (goal: ${goal}m).\nTop sites: ${topSites || "none yet"}.\nWeekly scores: ${weeklyScores}.\n${peakStr}`;
-}
-
-async function generateAiInsight(stats, state) {
-  try {
-    const availability = await self.LanguageModel.availability();
-    if (availability !== "readily") return { insight: null, fallback: true };
-  } catch {
-    return { insight: null, fallback: true };
-  }
-
-  const now = new Date();
-  const cacheKey = today();
-  const cacheHour = now.getHours();
-  if (aiInsightCache.date === cacheKey && aiInsightCache.hour === cacheHour && aiInsightCache.insight) {
-    return { insight: aiInsightCache.insight };
-  }
-
-  try {
-    const session = await self.LanguageModel.create({
-      systemPrompt: "You are a concise productivity coach. Given the user's browsing data, give ONE specific, actionable insight in 2 sentences. Reference specific sites, times, or scores. Be encouraging but honest. Never be judgmental."
-    });
-    const promptData = buildAiPromptData(stats, state);
-    const result = await session.prompt(promptData);
-    session.destroy();
-
-    const insight = result.trim();
-    aiInsightCache.date = cacheKey;
-    aiInsightCache.hour = cacheHour;
-    aiInsightCache.insight = insight;
-    return { insight };
-  } catch {
-    return { insight: null, fallback: true };
-  }
-}
-
-async function generateAiInsights(stats, state) {
-  try {
-    const availability = await self.LanguageModel.availability();
-    if (availability !== "readily") return { insights: null, fallback: true };
-  } catch {
-    return { insights: null, fallback: true };
-  }
-
-  const now = new Date();
-  const cacheKey = today();
-  const cacheHour = now.getHours();
-  if (aiInsightCache.date === cacheKey && aiInsightCache.hour === cacheHour && aiInsightCache.insights) {
-    return { insights: aiInsightCache.insights };
-  }
-
-  try {
-    const session = await self.LanguageModel.create({
-      systemPrompt: 'You are a concise productivity coach. Given the user\'s browsing data, generate exactly 4 insights. Each should be 1-2 sentences, specific (mention sites/times/scores), and actionable. Return a JSON array: [{"icon":"emoji","text":"..."}]. Use these icons: \u{1F3C6} for achievements, \u{26A0}\u{FE0F} for warnings, \u{1F550} for time patterns, \u{1F4C8}/\u{1F4C9} for trends.'
-    });
-    const promptData = buildAiPromptData(stats, state);
-    const result = await session.prompt(promptData);
-    session.destroy();
-
-    // Parse JSON from response — handle markdown fences
-    let cleaned = result.trim();
-    if (cleaned.startsWith("```")) {
-      cleaned = cleaned.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
-    }
-    const insights = JSON.parse(cleaned);
-    if (Array.isArray(insights) && insights.length > 0) {
-      aiInsightCache.date = cacheKey;
-      aiInsightCache.hour = cacheHour;
-      aiInsightCache.insights = insights;
-      return { insights };
-    }
-    return { insights: null, fallback: true };
-  } catch {
-    return { insights: null, fallback: true };
   }
 }
 
@@ -1002,12 +637,11 @@ async function generateAiInsights(stats, state) {
     updateBadge(true);
     chrome.alarms.create("focusTick", { periodInMinutes: 1 });
   }
-  // Always-on tracking tick for site time, pruning, and schedule
+  // Always-on tracking tick for site time and pruning
   chrome.alarms.create("trackingTick", { periodInMinutes: 1 });
   // Initialize tracking for current active tab
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab) startTracking(stripDomain(tab.url));
   } catch { /* ignore */ }
-  ensureWeeklyChallenges();
 })();
